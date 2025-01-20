@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Health Classifier</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Plant Health Classifier</h1>
+    <div class="button-container">
+        <button type="button" onclick="init()">Start Webcam</button>
+    </div>
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+    <h2>Sample Images</h2>
+    <div class="sample-container">
+        <img src="healthy1.jpg" alt="Healthy Sample 1" onclick="loadSampleImage('healthy1.jpg')">
+        <img src="healthy2.jpg" alt="Healthy Sample 2" onclick="loadSampleImage('healthy2.jpg')">
+        <img src="healthy3.jpg" alt="Healthy Sample 3" onclick="loadSampleImage('healthy3.jpg')">
+        <img src="rust1.jpg" alt="Rust Sample 1" onclick="loadSampleImage('rust1.jpg')">
+        <img src="rust2.jpg" alt="Rust Sample 2" onclick="loadSampleImage('rust2.jpg')">
+        <img src="rust3.jpg" alt="Rust Sample 3" onclick="loadSampleImage('rust3.jpg')">
+        <img src="mildew1.jpg" alt="Mildew Sample 1" onclick="loadSampleImage('mildew1.jpg')">
+        <img src="mildew2.jpg" alt="Mildew Sample 2" onclick="loadSampleImage('mildew2.jpg')">
+        <img src="mildew3.jpg" alt="Mildew Sample 3" onclick="loadSampleImage('mildew3.jpg')">
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script>
+        const URL = "https://teachablemachine.withgoogle.com/models/n9PWK3ckT/";
+        let model, webcam, labelContainer, maxPredictions;
+
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            const flip = true; 
+            webcam = new tmImage.Webcam(200, 200, flip); 
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            labelContainer.innerHTML = "";
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+        }
+
+        async function loop() {
+            webcam.update();
+            await predict(webcam.canvas);
+            setTimeout(loop, 100); 
+        }
+
+        async function predict(input) {
+            const prediction = await model.predict(input);
+            for (let i = 0; i < maxPredictions; i++) {
+                const classPrediction = prediction[i].className + ": " + (prediction[i].probability * 100).toFixed(0) + "%";
+                labelContainer.childNodes[i].innerHTML = classPrediction;
+            }
+        }
+
+        async function loadSampleImage(imagePath) {
+            const img = new Image();
+            img.src = imagePath;
+            img.onload = async () => {
+                await predict(img);
+            };
+        }
+    </script>
+</body>
+</html>
